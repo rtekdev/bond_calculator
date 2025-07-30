@@ -2,7 +2,7 @@
 default: help
 
 CC = gcc
-SRC = src/logic/operations.c src/logic/inflation.c
+SRC = src/logic/operations.c src/logic/inflation.c src/logic/bond_loader.c
 OUT_DEV = my_app
 OUT = my_app.so
 

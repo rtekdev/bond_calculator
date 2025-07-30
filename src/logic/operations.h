@@ -7,6 +7,6 @@ typedef struct {
     double inflation_lost;
 } compound_return;
 
-compound_return compound_interest(float initial_amount, float interest_rate, int years, double infation);
+compound_return compound_interest(float initial_amount, double interest_rate, int years, double next_rate, double infation, char type[10]);
 
 #endif
