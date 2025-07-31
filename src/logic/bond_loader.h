@@ -1,6 +1,8 @@
 #ifndef BOND_LOADER_H
 #define BOND_LOADER_H
 
+#include <stdlib.h>
+
 typedef struct {
     char *name;
     int years;
@@ -9,7 +11,7 @@ typedef struct {
     char *type;
 } BondType;
 
-static char *read_file(const char *file_path);
 BondType *load_bond_types(size_t *out_count);
+void free_bond_types(BondType *arr, size_t count);
 
 #endif

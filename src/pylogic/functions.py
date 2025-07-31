@@ -1,8 +1,6 @@
 import ctypes
 
 logic = ctypes.CDLL("./my_app.so")
-logic.add.argtypes = (ctypes.c_int, ctypes.c_int)
-logic.add.restype = ctypes.c_int
 
 logic.getInflation.argtypes = (ctypes.c_char_p,)
 logic.getInflation.restype = ctypes.c_double
@@ -29,3 +27,6 @@ class BondReturn(ctypes.Structure):
 
 logic.load_bond_types.argtypes = (ctypes.POINTER(ctypes.c_size_t),)
 logic.load_bond_types.restype = ctypes.POINTER(BondReturn)
+
+logic.free_bond_types.argtypes = (ctypes.POINTER(BondReturn), ctypes.c_size_t)
+logic.free_bond_types.restype  = None

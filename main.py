@@ -3,6 +3,7 @@ import ctypes
 from src.pylogic.functions import logic
 from src.pylogic.helpers import floor_to
 import src.pylogic.setup as sp
+from collections import namedtuple
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QScrollArea, QLayout, QWidget, QLabel, QLineEdit, QComboBox, QPushButton, QFrame
@@ -55,6 +56,23 @@ class MainWindow(QMainWindow):
         self.years_input.setStyleSheet(sp.input_styles)
         leftVBox.addWidget(self.years_input)
 
+        # Right side
+        rightVBox = QVBoxLayout()
+
+        choose_bond = self._build_combo_box()
+        rightVBox.addWidget(choose_bond)
+
+        self.type_combo = QComboBox()
+        self.type_combo.addItems(['inflation', 'permanent'])
+        self.type_combo.setStyleSheet("font-size: 18px; padding: 4px 8px; margin: 5px")
+        self.type_combo.setEnabled(False)
+        rightVBox.addWidget(self.type_combo)
+
+        self.next_rate_input = QLineEdit()
+        self.next_rate_input.setStyleSheet(sp.input_styles)
+        rightVBox.addWidget(self.next_rate_input)
+
+        # Controls
         controls = QHBoxLayout()
 
         button_add = QPushButton("Add")
@@ -64,16 +82,8 @@ class MainWindow(QMainWindow):
 
         button_calc = QPushButton("Calculate")
         button_calc.setStyleSheet(f"{sp.input_styles}; background-color: green")
-        button_calc.clicked.connect(lambda: self._calc(self.initial_input.text(), self.interest_rate_input.text(), self.years_input.text()))
+        button_calc.clicked.connect(lambda: self._calc(self.initial_input.text(), self.interest_rate_input.text(), self.years_input.text(), self.next_rate_input.text(), self.type_combo.currentText()))
         controls.addWidget(button_calc)
-
-        # Right side
-        rightVBox = QVBoxLayout()
-
-        choose_bond = self._build_combo_box()
-
-        rightVBox.addWidget(choose_bond)
-        rightVBox.addStretch()
 
         container.addLayout(leftVBox)
         container.addLayout(rightVBox)
@@ -83,27 +93,32 @@ class MainWindow(QMainWindow):
 
     def _build_combo_box(self):
         combo = QComboBox()
-        combo.setStyleSheet("font-size: 18px; padding: 0 4px; margin: 5px")
+        combo.setStyleSheet("font-size: 18px; padding: 4px 8px; margin: 5px")
         
-        bonds = getBonds()
-        for item in bonds:
-            combo.addItem(str(item.name)[2:-1])
+        # bonds = getBonds()
+        combo.addItem('Custom')
+        # for item in bonds:
+        #     combo.addItem(item.name)
 
         combo.currentTextChanged.connect(self._update_combo)
 
         return combo
     
     def _update_combo(self, name):
-            bonds = getBonds()
-            names = [b.name.decode('utf-8') for b in bonds]
+        pass
+            # bonds = getBonds()
+            # names = [b.name for b in bonds]
 
-            try:
-                idx = names.index(name)
-                self.interest_rate_input.setText(str(bonds[idx].interest_rate))
-                self.years_input.setText(str(bonds[idx].years))
+            # try:
+            #     idx = names.index(name)
+            #     self.interest_rate_input.setText(str(bonds[idx].interest_rate))
+            #     self.years_input.setText(str(bonds[idx].years))
+            #     self.next_rate_input.setText(str(bonds[idx].next_rate))
+            #     self.type_combo.setCurrentText(str(bonds[idx].type)[2:-1])
                 
-            except ValueError:
-                print("No bond named COI")
+            # except ValueError:
+            #     if not name.__eq__('Custom'):
+            #         print("No bond named COI")
 
     def _build_spinner(self, layout: QLayout):
         self.row_widget = QWidget()   
@@ -171,13 +186,13 @@ class MainWindow(QMainWindow):
             principal = float(initial_amount)
             rate      = float(interest_rate)
             n_years   = int(years)
-            next_rate = float(next_rate)
+            nrate = float(next_rate)
         except ValueError:
             return
     
         inflation = logic.getInflation(b"2024")
-        calc = logic.compound_interest(principal, rate, n_years, next_rate, inflation, type)
-        print(floor_to(calc.total * 17, 2), floor_to(calc.profit * 17, 2), floor_to(calc.inflation_lost * 17, 2))
+        calc = logic.compound_interest(principal, rate, n_years, nrate, inflation, type)
+        print(floor_to(calc.total, 2), floor_to(calc.profit, 2), floor_to(calc.inflation_lost * 17, 2))
 
     def _add(self, initial_amount, interest_rate, years):
         self.spinner_items.insert(0, {
@@ -203,16 +218,30 @@ def clear_layout(layout: QLayout):
             clear_layout(child_layout)   
             child_layout.deleteLater()
 
-def getBonds():
-    count = ctypes.c_size_t()
-    ptr = logic.load_bond_types(ctypes.byref(count))
+Bond = namedtuple("Bond", ["name","years","interest_rate","next_rate","type"])
 
-    n = count.value
+def getBonds():
+    cnt = ctypes.c_size_t()
+    ptr = logic.load_bond_types(ctypes.byref(cnt))
+    n   = cnt.value
     if not ptr:
         raise RuntimeError("load_bond_types failed")
 
-    bonds = ptr[:n]
-    return bonds
+    py_bonds = []
+    for i in range(n):
+        b = ptr[i]
+        py_bonds.append(
+            Bond(
+              name=b.name.decode(),
+              years=b.years,
+              interest_rate=b.interest_rate,
+              next_rate=b.next_rate,
+              type=b.type.decode(),
+            )
+        )
+
+    logic.free_bond_types(ptr, cnt)   # safe now—Python has its own copies
+    return py_bonds
 
 app = QApplication(sys.argv)
 

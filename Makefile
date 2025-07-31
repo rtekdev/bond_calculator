@@ -16,5 +16,5 @@ build:
 	$(CC) $(SRC) -o $(OUT_DEV) main.c -lm -lcurl -lcjson
 
 build-app:
-	$(CC) -shared -fPIC -O3 $(SRC) -o $(OUT) main.c -lm -lcurl -lcjson
+	$(CC) -shared -fPIC -O3 $(SRC) -o $(OUT) -lm -lcurl -lcjson
 
