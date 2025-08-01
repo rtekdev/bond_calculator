@@ -1,9 +1,8 @@
 import sys
 import ctypes
-from src.pylogic.functions import logic
+from src.pylogic.functions import logic, CompoundReturn
 from src.pylogic.helpers import floor_to
 import src.pylogic.setup as sp
-from collections import namedtuple
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QScrollArea, QLayout, QWidget, QLabel, QLineEdit, QComboBox, QPushButton, QFrame
@@ -95,10 +94,10 @@ class MainWindow(QMainWindow):
         combo = QComboBox()
         combo.setStyleSheet("font-size: 18px; padding: 4px 8px; margin: 5px")
         
-        # bonds = getBonds()
+        bonds = getBonds()
         combo.addItem('Custom')
-        # for item in bonds:
-        #     combo.addItem(item.name)
+        for item in bonds:
+            combo.addItem(item["name"])
 
         combo.currentTextChanged.connect(self._update_combo)
 
@@ -186,13 +185,22 @@ class MainWindow(QMainWindow):
             principal = float(initial_amount)
             rate      = float(interest_rate)
             n_years   = int(years)
-            nrate = float(next_rate)
+            nrate     = float(next_rate)
         except ValueError:
             return
     
         inflation = logic.getInflation(b"2024")
-        calc = logic.compound_interest(principal, rate, n_years, nrate, inflation, type)
-        print(floor_to(calc.total, 2), floor_to(calc.profit, 2), floor_to(calc.inflation_lost * 17, 2))
+        result = CompoundReturn()
+        logic.compound_interest(
+            ctypes.byref(result),
+            principal,
+            rate,
+            n_years,
+            nrate,
+            inflation,
+            type.encode("ascii"),
+        )
+        print(floor_to(result.total, 2), floor_to(result.profit, 2), floor_to(result.inflation_lost * 17, 2))
 
     def _add(self, initial_amount, interest_rate, years):
         self.spinner_items.insert(0, {
@@ -218,30 +226,45 @@ def clear_layout(layout: QLayout):
             clear_layout(child_layout)   
             child_layout.deleteLater()
 
-Bond = namedtuple("Bond", ["name","years","interest_rate","next_rate","type"])
+# Bond = namedtuple("Bond", ["name","years","interest_rate","next_rate","type"])
 
 def getBonds():
-    cnt = ctypes.c_size_t()
-    ptr = logic.load_bond_types(ctypes.byref(cnt))
-    n   = cnt.value
+    count = ctypes.c_int()
+    ptr = logic.getBonds(ctypes.byref(count))
     if not ptr:
-        raise RuntimeError("load_bond_types failed")
+        raise RuntimeError("getBonds failed")
 
-    py_bonds = []
-    for i in range(n):
+    bonds = []
+    for i in range(count.value):
         b = ptr[i]
-        py_bonds.append(
-            Bond(
-              name=b.name.decode(),
-              years=b.years,
-              interest_rate=b.interest_rate,
-              next_rate=b.next_rate,
-              type=b.type.decode(),
-            )
-        )
+        bonds.append({
+            "name": b.name.decode(),
+            "years": b.years,
+            "interest_rate": b.interest_rate,
+            "next_rate": b.next_rate,
+            "type": b.type.decode(),
+        })
 
-    logic.free_bond_types(ptr, cnt)   # safe now—Python has its own copies
-    return py_bonds
+    logic.freeBonds(ptr, count.value)
+
+    return bonds
+
+
+
+        # py_bonds.append(
+        #     Bond(
+        #       name=b.name.decode(),
+        #       years=b.years,
+        #       interest_rate=b.interest_rate,
+        #       next_rate=b.next_rate,
+        #       type=b.type.decode(),
+        #     )
+        # )
+
+    # logic.free_bond_types(ptr, cnt)   # safe now—Python has its own copies
+    # return py_bonds
+
+getBonds()
 
 app = QApplication(sys.argv)
 

@@ -11,7 +11,7 @@ typedef struct {
     char *type;
 } BondType;
 
-BondType *load_bond_types(size_t *out_count);
-void free_bond_types(BondType *arr, size_t count);
+BondType *getBonds(int *out_count);
+void freeBonds(BondType *arr, int count);
 
 #endif

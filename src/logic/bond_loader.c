@@ -9,99 +9,81 @@
 static const char *JSON_PATH = "./src/data/bond_types.json";
 
 // Read entire file into a NUL-terminated malloc()’d buffer.
-static char *read_file(const char *path) {
-    FILE *f = fopen(path, "rb");
-    if (!f) return NULL;
+BondType *getBonds(int *out_count) {
+    *out_count = 0;
+
+    // 1) open + size
+    FILE *f = fopen(JSON_PATH, "rb");
+    if (!f) {
+        perror("fopen");
+        exit(1);
+    }
     fseek(f, 0, SEEK_END);
-    long len = ftell(f);
+    long filesize = ftell(f);
     rewind(f);
 
-    char *buf = malloc(len + 1);
-    if (!buf) { fclose(f); return NULL; }
-
-    if (fread(buf, 1, len, f) != (size_t)len) {
-        free(buf);
+    // 2) alloc + read + nul-term
+    char *buffer = malloc(filesize + 1);
+    if (!buffer) {
         fclose(f);
-        return NULL;
+        perror("malloc");
+        exit(1);
     }
-    buf[len] = '\0';
+    size_t got = fread(buffer, 1, filesize, f);
     fclose(f);
-    return buf;
-}
+    if (got != (size_t)filesize) {
+        fprintf(stderr, "fread: expected %ld, got %zu\n", filesize, got);
+        free(buffer);
+        exit(1);
+    }
+    buffer[filesize] = '\0';
 
-BondType *load_bond_types(size_t *out_count) {
-    *out_count = 0;
-    char *json_text = read_file(JSON_PATH);
-    if (!json_text) {
-        fprintf(stderr, "Error reading JSON file %s\n", JSON_PATH);
-        return NULL;
+    // 3) parse
+    cJSON *json = cJSON_Parse(buffer);
+    free(buffer);
+    if (!json) {
+        fprintf(stderr, "JSON parse error: %s\n", cJSON_GetErrorPtr());
+        exit(1);
     }
 
-    cJSON *root = cJSON_Parse(json_text);
-    if (!root || !cJSON_IsArray(root)) {
-        fprintf(stderr, "JSON parse error or not an array: %s\n",
-                cJSON_GetErrorPtr());
-        free(json_text);
-        cJSON_Delete(root);
-        return NULL;
-    }
-
-    size_t n = cJSON_GetArraySize(root);
+    // 4) build array
+    size_t n = cJSON_GetArraySize(json);
+    *out_count = (int)n;
     BondType *arr = calloc(n, sizeof *arr);
     if (!arr) {
         perror("calloc");
-        free(json_text);
-        cJSON_Delete(root);
-        return NULL;
+        cJSON_Delete(json);
+        exit(1);
     }
 
-    for (size_t i = 0; i < n; i++) {
-        cJSON *item = cJSON_GetArrayItem(root, i);
+    for (int i = 0; i < (int)n; i++) {
+        cJSON *item = cJSON_GetArrayItem(json, i);
 
-        // name
-        cJSON *jname = cJSON_GetObjectItem(item, "name");
-        arr[i].name = strdup(
-            (jname && cJSON_IsString(jname)) 
-              ? jname->valuestring 
-              : "");
+        cJSON *j = cJSON_GetObjectItemCaseSensitive(item, "name");
+        const char *nm = (cJSON_IsString(j) && j->valuestring) ? j->valuestring : "";
+        arr[i].name = strdup(nm);
 
-        // years
-        cJSON *jyears = cJSON_GetObjectItem(item, "years");
-        arr[i].years = (jyears && cJSON_IsNumber(jyears))
-                       ? jyears->valueint
-                       : 0;
+        j = cJSON_GetObjectItemCaseSensitive(item, "years");
+        arr[i].years = (cJSON_IsNumber(j) ? j->valueint : 0);
 
-        // interest_rate
-        cJSON *jrate = cJSON_GetObjectItem(item, "interest_rate");
-        arr[i].interest_rate = (jrate && cJSON_IsNumber(jrate))
-                               ? jrate->valuedouble
-                               : 0.0;
+        j = cJSON_GetObjectItemCaseSensitive(item, "interest_rate");
+        arr[i].interest_rate = (cJSON_IsNumber(j) ? j->valuedouble : 0.0);
 
-        // next_rate
-        cJSON *jnextr = cJSON_GetObjectItem(item, "next_rate");
-        arr[i].next_rate = (jnextr && cJSON_IsNumber(jnextr))
-                           ? jnextr->valuedouble
-                           : 0.0;
+        j = cJSON_GetObjectItemCaseSensitive(item, "next_rate");
+        arr[i].next_rate = (cJSON_IsNumber(j) ? j->valuedouble : 0.0);
 
-        // type
-        cJSON *jtype = cJSON_GetObjectItem(item, "type");
-        arr[i].type = strdup(
-            (jtype && cJSON_IsString(jtype)) 
-              ? jtype->valuestring 
-              : "");
+        j = cJSON_GetObjectItemCaseSensitive(item, "type");
+        const char *ty = (cJSON_IsString(j) && j->valuestring) ? j->valuestring : "";
+        arr[i].type = strdup(ty);
     }
 
-    // clean up parse tree, then free the buffer we malloc’d
-    cJSON_Delete(root);
-    free(json_text);
-
-    *out_count = n;
+    cJSON_Delete(json);
     return arr;
 }
 
-void free_bond_types(BondType *arr, size_t count) {
+void freeBonds(BondType *arr, int count) {
     if (!arr) return;
-    for (size_t i = 0; i < count; i++) {
+    for (int i = 0; i < count; i++) {
         free(arr[i].name);
         free(arr[i].type);
     }

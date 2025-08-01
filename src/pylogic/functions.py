@@ -1,32 +1,39 @@
-import ctypes
+from ctypes import *
 
-logic = ctypes.CDLL("./my_app.so")
+logic = CDLL("./my_app.so")
 
-logic.getInflation.argtypes = (ctypes.c_char_p,)
-logic.getInflation.restype = ctypes.c_double
+logic.getInflation.argtypes = (c_char_p,)
+logic.getInflation.restype = c_double
 
 # Compound Interest 
-class CompoundReturn(ctypes.Structure):
+class CompoundReturn(Structure):
     _fields_ = [
-        ("total",          ctypes.c_double),
-        ("profit",         ctypes.c_double),
-        ("inflation_lost", ctypes.c_double),
+        ("total",          c_double),
+        ("profit",         c_double),
+        ("inflation_lost", c_double),
     ]
-logic.compound_interest.argtypes = (
-    ctypes.c_float, ctypes.c_double, ctypes.c_int, ctypes.c_double, ctypes.c_double)
-logic.compound_interest.restype = CompoundReturn
+logic.compound_interest.argtypes = [
+    POINTER(CompoundReturn),  # <-- result-out pointer
+    c_float,                  # initial_amount
+    c_double,                 # interest_rate
+    c_int,                    # years
+    c_double,                 # next_rate
+    c_double,                 # inflation
+    c_char_p,                 # type string
+]
+logic.compound_interest.restype = None
 
-class BondReturn(ctypes.Structure):
+class BondReturn(Structure):
     _fields_ = [
-        ("name",                ctypes.c_char_p),
-        ("years",               ctypes.c_int),
-        ("interest_rate",       ctypes.c_double),
-        ("next_rate",           ctypes.c_double),
-        ("type",                ctypes.c_char_p),
+        ("name",                c_char_p),
+        ("years",               c_int),
+        ("interest_rate",       c_double),
+        ("next_rate",           c_double),
+        ("type",                c_char_p),
     ]
 
-logic.load_bond_types.argtypes = (ctypes.POINTER(ctypes.c_size_t),)
-logic.load_bond_types.restype = ctypes.POINTER(BondReturn)
+logic.getBonds.argtypes = (POINTER(c_int),)
+logic.getBonds.restype = POINTER(BondReturn)
 
-logic.free_bond_types.argtypes = (ctypes.POINTER(BondReturn), ctypes.c_size_t)
-logic.free_bond_types.restype  = None
+logic.freeBonds.argtypes = (POINTER(BondReturn), c_int)
+logic.freeBonds.restype  = None
