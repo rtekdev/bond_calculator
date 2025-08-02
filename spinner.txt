@@ -1,0 +1,55 @@
+    # def _build_spinner(self, layout: QLayout):
+    #     self.row_widget = QWidget()   
+
+    #     self.row_widget.setFixedWidth(len(self.spinner_items) * sp.item_width + len(self.spinner_items)  * sp.margin)              
+    #     self.spinner_layout = QHBoxLayout(self.row_widget)
+    #     self.spinner_layout.setSpacing(sp.margin)  
+
+    #     self._update_spinner()  
+
+    #     scroll = QScrollArea()
+    #     scroll.setWidgetResizable(True) 
+    #     scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+    #     scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    #     scroll.setFrameShape(QFrame.Shape.NoFrame) 
+    #     scroll.setWidget(self.row_widget) 
+    #     scroll.setFixedHeight(120)
+        
+    #     layout.addWidget(scroll)
+    #     layout.addStretch()
+
+    def _update_spinner(self):
+        clear_layout(self.spinner_layout)
+        self.row_widget.setFixedWidth(len(self.spinner_items) * sp.item_width + len(self.spinner_items) * sp.margin)
+
+        for idx, item in enumerate(self.spinner_items, start=0):
+            container = QWidget()
+            temp_layout = QVBoxLayout(container)
+            container.setStyleSheet("background-color: grey")
+            container.resize(250, 100) 
+
+            header = QHBoxLayout()
+
+            title = QLabel(f'EDO')
+            title.setStyleSheet("font-size: 20px; font-weight: bold; color: white")
+            header.addWidget(title)
+
+            copy_item = QPushButton("+")
+            copy_item.setStyleSheet("font-size: 18px; color: white")
+            copy_item.setFixedWidth(40)
+            copy_item.clicked.connect(lambda _, n=idx: self._copy(n))
+            header.addWidget(copy_item)
+
+            temp_layout.addLayout(header)
+
+            amount = QLabel(f'{item["amount"]} PLN')
+            temp_layout.addWidget(amount)
+            # text.setStyleSheet("")
+
+            rate = QLabel(f'{item["rate"]}%')
+            temp_layout.addWidget(rate)
+
+            years = QLabel(f'{item["years"]} Years')
+            temp_layout.addWidget(years)
+
+            self.spinner_layout.addWidget(container)

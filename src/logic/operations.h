@@ -5,6 +5,9 @@ typedef struct {
   double total;
   double profit;
   double inflation_lost;
+  float allInvested;
+  float profit_percent;
+  float lost_percent;
 } compound_return;
 
 

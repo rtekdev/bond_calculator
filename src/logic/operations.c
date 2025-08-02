@@ -3,12 +3,7 @@
 #include <math.h>
 #include <string.h>
 
-typedef struct {
-    double total;
-    double profit;
-} returnTotalAndProfit;
-
-static returnTotalAndProfit calculate_formula(
+static double calculate_formula(
   float            amount,
   double           interest_rate,
   int              years,
@@ -36,44 +31,52 @@ void compound_interest(
     int iterations = total_years + (total_years - 10 > 0 ? total_years - 10 : 0) - 1;
     
     // First time
-    returnTotalAndProfit initial_data = calculate_formula(
+    double res_total = calculate_formula(
         initial_amount, interest_rate, years, next_rate, annual_inflation_rate, bond_type
     );
-    result.total = initial_data.total;
-    result.profit = initial_data.profit;
+    result.total = res_total;
     
     float n = total_years / 10;
     for(int i = 0; i < n; i++) {
-        returnTotalAndProfit reinvest_initial = calculate_formula(
+        double res_profit = calculate_formula(
             result.total, interest_rate, years, next_rate, annual_inflation_rate, bond_type
         );
-        result.total = reinvest_initial.total;
-        result.profit = reinvest_initial.profit;
+        result.total = res_profit;
     }
 
     if(strcmp(regular_type, "monthly") == 0)
         iterations *= 12;
 
     while(iterations > 0) {
-        returnTotalAndProfit res_data = calculate_formula(
+        res_total = calculate_formula(
             regular_amount, interest_rate, years, next_rate, annual_inflation_rate, bond_type
         );
 
-        result.total += res_data.total;
-        result.profit += res_data.profit;
-
+        result.total += res_total;
         iterations--;
     }
 
-    double inflation_adj    = pow(1 + annual_inflation_rate, years);
-    double inflation_lost   = initial_amount / inflation_adj;
+    float allRegularAmount = strcmp(regular_type, "monthly") == 0 ? 
+        (regular_amount * 12 * total_years) : (regular_amount * total_years);
+    float allInvestedAmount = initial_amount + allRegularAmount;
+
+    double inflation_adj    = pow(1 + annual_inflation_rate, total_years);
+    double inflation_lost   = allInvestedAmount / inflation_adj;
+    double money_reduced_by_inflation = allInvestedAmount - inflation_lost;
+
+    double profit = result.total - allInvestedAmount; 
+    float profit_percent = result.total / allInvestedAmount;
+    float lost_percent = money_reduced_by_inflation / allInvestedAmount;
 
     out->total              = result.total;
-    out->profit             = result.profit;
-    out->inflation_lost     = result.inflation_lost;
+    out->profit             = profit;
+    out->inflation_lost     = money_reduced_by_inflation;
+    out->allInvested        = allInvestedAmount;
+    out->profit_percent     = profit_percent;
+    out->lost_percent       = lost_percent;
 }
 
-static returnTotalAndProfit calculate_formula(
+static double calculate_formula(
   float            amount,
   double           interest_rate,
   int              years,
@@ -91,11 +94,5 @@ static returnTotalAndProfit calculate_formula(
     } else 
         total = amount * pow(1 + interest_rate/100.0, years);
     
-    double profit = total - amount;
-    
-    returnTotalAndProfit result;
-    result.total = total;
-    result.profit = profit;
-
-    return result;
+    return total;
 }

@@ -5,12 +5,12 @@ from src.pylogic.helpers import floor_to, Settings
 import src.pylogic.setup as sp
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QScrollArea, QLayout, QWidget, QLabel, QLineEdit, QComboBox, QPushButton, QFrame
+from PyQt6.QtWidgets import QApplication, QMessageBox, QMainWindow, QVBoxLayout, QHBoxLayout, QScrollArea, QLayout, QWidget, QLabel, QLineEdit, QComboBox, QPushButton, QFrame
 
 class MainWindow(QMainWindow):
     spinner_items = []
     spinner_layout = QHBoxLayout()
-    item_width = 250
+    
 
     # settings
     # 0 - Auto
@@ -26,8 +26,8 @@ class MainWindow(QMainWindow):
         self._build_components(layout) 
         layout.addStretch()
 
-        self._build_spinner(layout)
-        
+        # Spinner (Future)
+        # self._build_spinner(layout)
         
         widget = QWidget()
         widget.setLayout(layout)
@@ -142,62 +142,6 @@ class MainWindow(QMainWindow):
             else:
                 print("No bond named COI")
 
-    def _build_spinner(self, layout: QLayout):
-        self.row_widget = QWidget()   
-
-        self.row_widget.setFixedWidth(len(self.spinner_items) * self.item_width + len(self.spinner_items)  * sp.margin)              
-        self.spinner_layout = QHBoxLayout(self.row_widget)
-        self.spinner_layout.setSpacing(sp.margin)  
-
-        self._update_spinner()  
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True) 
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setFrameShape(QFrame.Shape.NoFrame) 
-        scroll.setWidget(self.row_widget) 
-        scroll.setFixedHeight(120)
-        
-        layout.addWidget(scroll)
-        layout.addStretch()
-
-    def _update_spinner(self):
-        clear_layout(self.spinner_layout)
-        self.row_widget.setFixedWidth(len(self.spinner_items) * self.item_width + len(self.spinner_items) * sp.margin)
-
-        for idx, item in enumerate(self.spinner_items, start=0):
-            container = QWidget()
-            temp_layout = QVBoxLayout(container)
-            container.setStyleSheet("background-color: grey")
-            container.resize(250, 100) 
-
-            header = QHBoxLayout()
-
-            title = QLabel(f'EDO')
-            title.setStyleSheet("font-size: 20px; font-weight: bold; color: white")
-            header.addWidget(title)
-
-            copy_item = QPushButton("+")
-            copy_item.setStyleSheet("font-size: 18px; color: white")
-            copy_item.setFixedWidth(40)
-            copy_item.clicked.connect(lambda _, n=idx: self._copy(n))
-            header.addWidget(copy_item)
-
-            temp_layout.addLayout(header)
-
-            amount = QLabel(f'{item["amount"]} PLN')
-            temp_layout.addWidget(amount)
-            # text.setStyleSheet("")
-
-            rate = QLabel(f'{item["rate"]}%')
-            temp_layout.addWidget(rate)
-
-            years = QLabel(f'{item["years"]} Years')
-            temp_layout.addWidget(years)
-
-            self.spinner_layout.addWidget(container)
-
     def _copy(self, id):
         self.initial_input.setText(self.spinner_items[id]["amount"])
         self.interest_rate_input.setText(self.spinner_items[id]["rate"])
@@ -228,7 +172,15 @@ class MainWindow(QMainWindow):
             r_amount,
             regular_type.encode("ascii")
         )
-        print(floor_to(result.total, 2), floor_to(result.profit, 2), floor_to(result.inflation_lost * 17, 2))
+        self._res_dialog(
+            floor_to(result.total, 2), 
+            floor_to(result.profit, 2), 
+            floor_to(result.inflation_lost, 2),
+            floor_to(result.allInvested, 2),
+            result.profit_percent,
+            result.lost_percent,
+            t_years)
+        
 
     def _add(self, initial_amount, interest_rate, years):
         self.spinner_items.insert(0, {
@@ -246,6 +198,20 @@ class MainWindow(QMainWindow):
         layout.addWidget(input)
 
         return input
+
+    def _res_dialog(self, total: float, profit: float, inflation_lost: float, allInvested: float, profit_percent: float, lost_percent: float, total_years: int):
+        message = QMessageBox()
+        message.setWindowTitle("Response")
+        message.setText(
+            f"""Overall Profit In Percentage: 
+                {floor_to(profit_percent*100, 2)}%\n\nOverall Lost In Percentage: 
+                {floor_to(lost_percent*100, 2)}%
+            """
+        )
+        message.setDetailedText(f"Total: {total} PLN\nProfit: {profit} PLN\nInflation Lost: {inflation_lost} PLN\nAll Invested Money: {allInvested} PLN\nTotal Years: {total_years}\n\nLost is based on last year inflation (GUS data)")
+        message.setStyleSheet("font-size: 18px")
+        message.setFixedWidth(400)
+        message.exec()
 
 def clear_layout(layout: QLayout):
     """Remove *everything* inside `layout` (widgets + nested layouts)."""

@@ -11,6 +11,9 @@ class CompoundReturn(Structure):
         ("total",          c_double),
         ("profit",         c_double),
         ("inflation_lost", c_double),
+        ("allInvested",    c_float),
+        ("profit_percent", c_float),
+        ("lost_percent",   c_float),
     ]
 logic.compound_interest.argtypes = [
     POINTER(CompoundReturn),  # <-- result-out pointer
