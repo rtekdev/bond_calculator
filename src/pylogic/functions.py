@@ -20,6 +20,9 @@ logic.compound_interest.argtypes = [
     c_double,                 # next_rate
     c_double,                 # inflation
     c_char_p,                 # type string
+    c_int,                    # total years
+    c_float,                  # regular amount
+    c_char_p                  # regular type
 ]
 logic.compound_interest.restype = None
 

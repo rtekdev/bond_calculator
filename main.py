@@ -1,7 +1,7 @@
 import sys
 import ctypes
 from src.pylogic.functions import logic, CompoundReturn
-from src.pylogic.helpers import floor_to
+from src.pylogic.helpers import floor_to, Settings
 import src.pylogic.setup as sp
 
 from PyQt6.QtCore import Qt
@@ -12,10 +12,15 @@ class MainWindow(QMainWindow):
     spinner_layout = QHBoxLayout()
     item_width = 250
 
+    # settings
+    # 0 - Auto
+    # 1 - Manual
+    bond_offers = Settings(0)
+
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("BOND Calculator")
+        self.setWindowTitle("Super BOND Calculator")
         
         layout = QVBoxLayout()
         self._build_components(layout) 
@@ -31,45 +36,47 @@ class MainWindow(QMainWindow):
         self.resize(sp.width, sp.height)
 
     def _build_components(self, layout: QLayout):
-        title = QLabel("Your BOND calculator")
+        title = QLabel("Super BOND calculator")
         title.setStyleSheet("font-size: 24px; color: white; font-weight: bold")
         title.setMargin(10)
         layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         container = QHBoxLayout()
 
-        leftVBox = QVBoxLayout()
+        # First Column
+        firstColumn = QVBoxLayout()
 
-        self.initial_input = QLineEdit()
-        self.initial_input.setPlaceholderText("Enter initial amount (26000)")
-        self.initial_input.setStyleSheet(sp.input_styles)
-        leftVBox.addWidget(self.initial_input)
+        self.initial_input = self._create_num_line_edit("Enter initial amount (26000)", firstColumn)
+        self.interest_rate_input = self._create_num_line_edit("Enter interest rate (6.25%)", firstColumn)
+        self.years_input = self._create_num_line_edit("Enter BOND's years (10)", firstColumn)
 
-        self.interest_rate_input = QLineEdit()
-        self.interest_rate_input.setPlaceholderText("Enter interest rate (6.25%)")
-        self.interest_rate_input.setStyleSheet(sp.input_styles)
-        leftVBox.addWidget(self.interest_rate_input)
+        # Third Column
+        # Bond below 10 years / settings
 
-        self.years_input = QLineEdit()
-        self.years_input.setPlaceholderText("Enter BOND's years (10)")
-        self.years_input.setStyleSheet(sp.input_styles)
-        leftVBox.addWidget(self.years_input)
+        secondColumn = QVBoxLayout()
 
-        # Right side
-        rightVBox = QVBoxLayout()
+        total_years_input = self._create_num_line_edit("Total years", secondColumn)
+        regular_amount_input = self._create_num_line_edit("Regular amount payment", secondColumn)
+        
+        regular_type_input = QComboBox()
+        regular_type_input.addItems(['yearly', 'monthly'])
+        regular_type_input.setStyleSheet("font-size: 18px; padding: 4px 8px; margin: 5px")
+        secondColumn.addWidget(regular_type_input)
+
+        # Third Column
+        thirdColumn = QVBoxLayout()
 
         choose_bond = self._build_combo_box()
-        rightVBox.addWidget(choose_bond)
+        thirdColumn.addWidget(choose_bond)
 
         self.type_combo = QComboBox()
         self.type_combo.addItems(['inflation', 'permanent'])
         self.type_combo.setStyleSheet("font-size: 18px; padding: 4px 8px; margin: 5px")
-        self.type_combo.setEnabled(False)
-        rightVBox.addWidget(self.type_combo)
+        thirdColumn.addWidget(self.type_combo)
 
-        self.next_rate_input = QLineEdit()
-        self.next_rate_input.setStyleSheet(sp.input_styles)
-        rightVBox.addWidget(self.next_rate_input)
+        self.next_rate_input = self._create_num_line_edit("Next rate (2%)", thirdColumn)
+
+        
 
         # Controls
         controls = QHBoxLayout()
@@ -81,11 +88,22 @@ class MainWindow(QMainWindow):
 
         button_calc = QPushButton("Calculate")
         button_calc.setStyleSheet(f"{sp.input_styles}; background-color: green")
-        button_calc.clicked.connect(lambda: self._calc(self.initial_input.text(), self.interest_rate_input.text(), self.years_input.text(), self.next_rate_input.text(), self.type_combo.currentText()))
+        button_calc.clicked.connect(
+            lambda: self._calc(
+                self.initial_input.text(), 
+                self.interest_rate_input.text(), 
+                self.years_input.text(), 
+                self.next_rate_input.text(), 
+                self.type_combo.currentText(),
+                total_years_input.text(),
+                regular_amount_input.text(),
+                regular_type_input.currentText()
+            ))
         controls.addWidget(button_calc)
 
-        container.addLayout(leftVBox)
-        container.addLayout(rightVBox)
+        container.addLayout(firstColumn)
+        container.addLayout(secondColumn)
+        container.addLayout(thirdColumn)
         
         layout.addLayout(container)
         layout.addLayout(controls)
@@ -102,22 +120,27 @@ class MainWindow(QMainWindow):
         combo.currentTextChanged.connect(self._update_combo)
 
         return combo
-    
-    def _update_combo(self, name):
-        pass
-            # bonds = getBonds()
-            # names = [b.name for b in bonds]
 
-            # try:
-            #     idx = names.index(name)
-            #     self.interest_rate_input.setText(str(bonds[idx].interest_rate))
-            #     self.years_input.setText(str(bonds[idx].years))
-            #     self.next_rate_input.setText(str(bonds[idx].next_rate))
-            #     self.type_combo.setCurrentText(str(bonds[idx].type)[2:-1])
+    def _update_combo(self, name):
+    
+        bonds = getBonds()
+        names = [item["name"] for item in bonds]
+
+        try:
+            idx = names.index(name)
+            self.interest_rate_input.setText(str(bonds[idx]["interest_rate"]))
+            self.years_input.setText(str(bonds[idx]["years"]))
+            self.next_rate_input.setText(str(bonds[idx]["next_rate"]))
+            self.type_combo.setCurrentText(str(bonds[idx]["type"]))
+            self.next_rate_input.setEnabled(False)
+            self.type_combo.setEnabled(False)
                 
-            # except ValueError:
-            #     if not name.__eq__('Custom'):
-            #         print("No bond named COI")
+        except ValueError:
+            if name.__eq__('Custom'):
+                self.next_rate_input.setEnabled(True)
+                self.type_combo.setEnabled(True)
+            else:
+                print("No bond named COI")
 
     def _build_spinner(self, layout: QLayout):
         self.row_widget = QWidget()   
@@ -180,12 +203,14 @@ class MainWindow(QMainWindow):
         self.interest_rate_input.setText(self.spinner_items[id]["rate"])
         self.years_input.setText(self.spinner_items[id]["years"])
 
-    def _calc(self, initial_amount, interest_rate, years, next_rate, type):
+    def _calc(self, initial_amount, interest_rate, years, next_rate, type, total_years, regular_amount, regular_type):
         try:
             principal = float(initial_amount)
             rate      = float(interest_rate)
             n_years   = int(years)
             nrate     = float(next_rate)
+            t_years   = int(total_years)
+            r_amount  = float(regular_amount)
         except ValueError:
             return
     
@@ -199,6 +224,9 @@ class MainWindow(QMainWindow):
             nrate,
             inflation,
             type.encode("ascii"),
+            t_years,
+            r_amount,
+            regular_type.encode("ascii")
         )
         print(floor_to(result.total, 2), floor_to(result.profit, 2), floor_to(result.inflation_lost * 17, 2))
 
@@ -210,6 +238,14 @@ class MainWindow(QMainWindow):
         })
 
         self._update_spinner()
+
+    def _create_num_line_edit(self, placeholder: str, layout: QLayout): 
+        input = QLineEdit()
+        input.setPlaceholderText(placeholder)
+        input.setStyleSheet(sp.input_styles)
+        layout.addWidget(input)
+
+        return input
 
 def clear_layout(layout: QLayout):
     """Remove *everything* inside `layout` (widgets + nested layouts)."""
@@ -225,8 +261,6 @@ def clear_layout(layout: QLayout):
         if child_layout is not None:     
             clear_layout(child_layout)   
             child_layout.deleteLater()
-
-# Bond = namedtuple("Bond", ["name","years","interest_rate","next_rate","type"])
 
 def getBonds():
     count = ctypes.c_int()
@@ -248,21 +282,6 @@ def getBonds():
     logic.freeBonds(ptr, count.value)
 
     return bonds
-
-
-
-        # py_bonds.append(
-        #     Bond(
-        #       name=b.name.decode(),
-        #       years=b.years,
-        #       interest_rate=b.interest_rate,
-        #       next_rate=b.next_rate,
-        #       type=b.type.decode(),
-        #     )
-        # )
-
-    # logic.free_bond_types(ptr, cnt)   # safe now—Python has its own copies
-    # return py_bonds
 
 getBonds()
 

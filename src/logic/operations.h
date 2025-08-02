@@ -15,7 +15,10 @@ void compound_interest(
   int              years,
   double           next_rate,
   double           inflation,
-  const char      *type  
+  const char      *bond_type,
+  int              total_years,
+  float            regular_amount,
+  const char      *regular_type
 );
 
 #endif

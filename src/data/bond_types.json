@@ -9,14 +9,14 @@
     {
         "name": "COI",
         "years": 4,
-        "interest_rate": 6.0,
+        "interest_rate": 5.75,
         "next_rate": 1.5,
         "type": "inflation"
     },
     {
         "name": "TOS",
         "years": 3,
-        "interest_rate": 5.65,
+        "interest_rate": 5.4,
         "next_rate": 0,
         "type": "permanent"
     }
