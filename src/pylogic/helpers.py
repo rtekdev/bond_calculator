@@ -5,7 +5,8 @@ def floor_to(x: float, places: int):
     f = 10 ** places
     return math.floor(x * f) / f
 
-class Settings(Enum):
-    # Default
-    AUTO = 0
-    MANUAL = 1
+# Future
+# class Settings(Enum):
+#     # Default
+#     AUTO = 0
+#     MANUAL = 1

@@ -36,13 +36,17 @@ int main() {
     // White space
     printf("\n");
 
-    // Finally, calculating
+    // Calculating example:
     compound_return calc_data;
     compound_interest(&calc_data, 10000, 6.0, 10, 2.0, lastInflation, "inflation", 12, 20, "monthly");
     printf("Total: %.2lf PLN\n", calc_data.total);
     printf("Profit: %.2lf PLN\n", calc_data.profit);
     printf("Inflation Lost: %.2lf PLN\n", calc_data.inflation_lost);
-    printf("All Invested Money: %.2lf PLN\n", calc_data.allInvested);
+    printf("All Invested Money: %.2lf PLN\n\n", calc_data.allInvested);
+    printf("Profit in Percentage: %.2f%%\n", calc_data.profit_percent*100);
+    printf("Profit is based on total/all Invested Money\n");
+    printf("Lost in Percentage: %.2f%%\n", calc_data.lost_percent*100);
+    printf("Lost is based on last year inflation (GUS data)\n");
 
     return 0;
 }

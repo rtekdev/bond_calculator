@@ -30,7 +30,7 @@ void compound_interest(
 
     int iterations = total_years + (total_years - 10 > 0 ? total_years - 10 : 0) - 1;
     
-    // First time
+    // First time calculating
     double res_total = calculate_formula(
         initial_amount, interest_rate, years, next_rate, annual_inflation_rate, bond_type
     );

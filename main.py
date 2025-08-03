@@ -1,7 +1,7 @@
 import sys
 import ctypes
 from src.pylogic.functions import logic, CompoundReturn
-from src.pylogic.helpers import floor_to, Settings
+from src.pylogic.helpers import floor_to
 import src.pylogic.setup as sp
 
 from PyQt6.QtCore import Qt
@@ -11,11 +11,9 @@ class MainWindow(QMainWindow):
     spinner_items = []
     spinner_layout = QHBoxLayout()
     
-
-    # settings
-    # 0 - Auto
-    # 1 - Manual
-    bond_offers = Settings(0)
+    # settings - Future
+    # 0 - Auto / 1 - Manual
+    # bond_offers = Settings(0)
 
     def __init__(self):
         super().__init__()
@@ -248,8 +246,6 @@ def getBonds():
     logic.freeBonds(ptr, count.value)
 
     return bonds
-
-getBonds()
 
 app = QApplication(sys.argv)
 
