@@ -12,6 +12,11 @@ An advanced compound interest calculator that estimates profitability of a safe 
 - **Make** (for convenience targets)
 
 ## Installation
+> At the start, you need to install:
+```bash
+sudo apt install -y libcurl4-openssl-dev libcjson-dev
+```
+
 > To use, download the files or clone the repository
 - Clone the repo:
   ```bash
